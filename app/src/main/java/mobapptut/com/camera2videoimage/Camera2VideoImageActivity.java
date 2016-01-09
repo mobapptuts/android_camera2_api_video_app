@@ -1,6 +1,7 @@
 package mobapptut.com.camera2videoimage;
 
 import android.graphics.SurfaceTexture;
+import android.hardware.camera2.CameraDevice;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.TextureView;
@@ -32,6 +33,25 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
 
         }
     };
+    private CameraDevice mCameraDevice;
+    private CameraDevice.StateCallback mCameraDeviceStateCallback = new CameraDevice.StateCallback() {
+        @Override
+        public void onOpened(CameraDevice camera) {
+            mCameraDevice = camera;
+        }
+
+        @Override
+        public void onDisconnected(CameraDevice camera) {
+            camera.close();
+            mCameraDevice = null;
+        }
+
+        @Override
+        public void onError(CameraDevice camera, int error) {
+            camera.close();
+            mCameraDevice = null;
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,6 +73,13 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onPause() {
+        closeCamera();
+
+        super.onPause();
+    }
+
+    @Override
     public void onWindowFocusChanged(boolean hasFocas) {
         super.onWindowFocusChanged(hasFocas);
         View decorView = getWindow().getDecorView();
@@ -63,6 +90,13 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
                     | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                     | View.SYSTEM_UI_FLAG_FULLSCREEN
                     | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
+        }
+    }
+
+    private void closeCamera() {
+        if(mCameraDevice != null) {
+            mCameraDevice.close();
+            mCameraDevice = null;
         }
     }
 }
