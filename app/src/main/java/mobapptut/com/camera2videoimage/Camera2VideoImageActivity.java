@@ -22,6 +22,7 @@ import android.util.SparseIntArray;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -83,6 +84,10 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
     private String mCameraId;
     private Size mPreviewSize;
     private CaptureRequest.Builder mCaptureRequestBuilder;
+
+    private ImageButton mRecordImageButton;
+    private boolean mIsRecording = false;
+
     private static SparseIntArray ORIENTATIONS = new SparseIntArray();
     static {
         ORIENTATIONS.append(Surface.ROTATION_0, 0);
@@ -106,6 +111,19 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
         setContentView(R.layout.activity_camera2_video_image);
 
         mTextureView = (TextureView) findViewById(R.id.textureView);
+        mRecordImageButton = (ImageButton) findViewById(R.id.videoOnlineImageButton);
+        mRecordImageButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(mIsRecording) {
+                    mIsRecording = false;
+                    mRecordImageButton.setImageResource(R.mipmap.btn_video_online);
+                } else {
+                    mIsRecording = true;
+                    mRecordImageButton.setImageResource(R.mipmap.btn_video_busy);
+                }
+            }
+        });
     }
 
     @Override
