@@ -168,7 +168,6 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
         }
         if(requestCode == REQUEST_WRITE_EXTERNAL_STORAGE_PERMISSION_RESULT) {
             if(grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                mMediaRecorder = new MediaRecorder();
                 mIsRecording = true;
                 mRecordImageButton.setImageResource(R.mipmap.btn_video_busy);
                 try {
