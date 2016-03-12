@@ -69,7 +69,17 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
         @Override
         public void onOpened(CameraDevice camera) {
             mCameraDevice = camera;
-            startPreview();
+            if(mIsRecording) {
+                try {
+                    createVideoFileName();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                startRecord();
+                mMediaRecorder.start();
+            } else {
+                startPreview();
+            }
             // Toast.makeText(getApplicationContext(),
             //         "Camera connection made!", Toast.LENGTH_SHORT).show();
         }
@@ -136,6 +146,9 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
                 if(mIsRecording) {
                     mIsRecording = false;
                     mRecordImageButton.setImageResource(R.mipmap.btn_video_online);
+                    mMediaRecorder.stop();
+                    mMediaRecorder.reset();
+                    startPreview();
                 } else {
                     checkWriteStoragePermission();
                 }
@@ -259,6 +272,41 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
         }
     }
 
+    private void startRecord() {
+
+        try {
+            setupMediaRecorder();
+            SurfaceTexture surfaceTexture = mTextureView.getSurfaceTexture();
+            surfaceTexture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
+            Surface previewSurface = new Surface(surfaceTexture);
+            Surface recordSurface = mMediaRecorder.getSurface();
+            mCaptureRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
+            mCaptureRequestBuilder.addTarget(previewSurface);
+            mCaptureRequestBuilder.addTarget(recordSurface);
+
+            mCameraDevice.createCaptureSession(Arrays.asList(previewSurface, recordSurface),
+                    new CameraCaptureSession.StateCallback() {
+                        @Override
+                        public void onConfigured(CameraCaptureSession session) {
+                            try {
+                                session.setRepeatingRequest(
+                                        mCaptureRequestBuilder.build(), null, null
+                                );
+                            } catch (CameraAccessException e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+                        @Override
+                        public void onConfigureFailed(CameraCaptureSession session) {
+
+                        }
+                    }, null);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
     private void startPreview() {
         SurfaceTexture surfaceTexture = mTextureView.getSurfaceTexture();
         surfaceTexture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
@@ -364,6 +412,8 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                startRecord();
+                mMediaRecorder.start();
             } else {
                 if(shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
                     Toast.makeText(this, "app needs to be able to save videos", Toast.LENGTH_SHORT).show();
@@ -378,6 +428,8 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            startRecord();
+            mMediaRecorder.start();
         }
     }
 
