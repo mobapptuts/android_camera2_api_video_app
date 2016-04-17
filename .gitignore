@@ -1,6 +1,5 @@
 .gradle
 /local.properties
-/build.gradle
 /.idea/workspace.xml
 /.idea/libraries
 /.idea/encodings.xml
