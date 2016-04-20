@@ -190,11 +190,6 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
             if(grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 mIsRecording = true;
                 mRecordImageButton.setImageResource(R.mipmap.btn_video_busy);
-                try {
-                    createVideoFileName();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
                 Toast.makeText(this,
                         "Permission successfully granted!", Toast.LENGTH_SHORT).show();
             } else {
