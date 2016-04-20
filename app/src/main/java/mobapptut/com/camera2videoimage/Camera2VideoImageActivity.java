@@ -71,6 +71,7 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
         @Override
         public void onOpened(CameraDevice camera) {
             mCameraDevice = camera;
+            mMediaRecorder = new MediaRecorder();
             if(mIsRecording) {
                 try {
                     createVideoFileName();
@@ -141,16 +142,13 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
 
         createVideoFolder();
 
-
-        mMediaRecorder = new MediaRecorder();
-
         mChronometer = (Chronometer) findViewById(R.id.chronometer);
         mTextureView = (TextureView) findViewById(R.id.textureView);
         mRecordImageButton = (ImageButton) findViewById(R.id.videoOnlineImageButton);
         mRecordImageButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mIsRecording) {
+                if (mIsRecording) {
                     mChronometer.stop();
                     mChronometer.setVisibility(View.INVISIBLE);
                     mIsRecording = false;
@@ -353,6 +351,10 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
         if(mCameraDevice != null) {
             mCameraDevice.close();
             mCameraDevice = null;
+        }
+        if(mMediaRecorder != null) {
+            mMediaRecorder.release();
+            mMediaRecorder = null;
         }
     }
 
