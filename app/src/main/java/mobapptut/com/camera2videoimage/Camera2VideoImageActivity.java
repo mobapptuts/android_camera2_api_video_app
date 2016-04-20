@@ -80,9 +80,14 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
                 }
                 startRecord();
                 mMediaRecorder.start();
-                mChronometer.setBase(SystemClock.elapsedRealtime());
-                mChronometer.setVisibility(View.VISIBLE);
-                mChronometer.start();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mChronometer.setBase(SystemClock.elapsedRealtime());
+                        mChronometer.setVisibility(View.VISIBLE);
+                        mChronometer.start();
+                    }
+                });
             } else {
                 startPreview();
             }
