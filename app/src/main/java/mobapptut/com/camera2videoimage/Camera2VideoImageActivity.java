@@ -115,6 +115,7 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
     private MediaRecorder mMediaRecorder;
     private Chronometer mChronometer;
     private int mTotalRotation;
+    private CameraCaptureSession mRecordCaptureSession;
     private CaptureRequest.Builder mCaptureRequestBuilder;
 
     private ImageButton mRecordImageButton;
@@ -154,13 +155,14 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if (mIsRecording) {
+                    mRecordCaptureSession.close();
                     mChronometer.stop();
                     mChronometer.setVisibility(View.INVISIBLE);
                     mIsRecording = false;
                     mRecordImageButton.setImageResource(R.mipmap.btn_video_online);
                     mMediaRecorder.stop();
                     mMediaRecorder.reset();
-                    startPreview();
+                    // startPreview();
                 } else {
                     checkWriteStoragePermission();
                 }
@@ -295,8 +297,9 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
                     new CameraCaptureSession.StateCallback() {
                         @Override
                         public void onConfigured(CameraCaptureSession session) {
+                            mRecordCaptureSession = session;
                             try {
-                                session.setRepeatingRequest(
+                                mRecordCaptureSession.setRepeatingRequest(
                                         mCaptureRequestBuilder.build(), null, null
                                 );
                             } catch (CameraAccessException e) {
@@ -307,6 +310,13 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
                         @Override
                         public void onConfigureFailed(CameraCaptureSession session) {
 
+                        }
+
+                        @Override
+                        public void onClosed(CameraCaptureSession session) {
+                            super.onClosed(session);
+
+                            startPreview();
                         }
                     }, null);
 
