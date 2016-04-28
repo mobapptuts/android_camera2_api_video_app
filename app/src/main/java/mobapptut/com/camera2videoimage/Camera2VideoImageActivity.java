@@ -3,6 +3,7 @@ package mobapptut.com.camera2videoimage;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -10,7 +11,10 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.CaptureResult;
+import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.media.ImageReader;
 import android.media.MediaRecorder;
 import android.os.Build;
 import android.os.Environment;
@@ -43,6 +47,9 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
 
     private static final int REQUEST_CAMERA_PERMISSION_RESULT = 0;
     private static final int REQUEST_WRITE_EXTERNAL_STORAGE_PERMISSION_RESULT = 1;
+    private static final int STATE_PREVIEW = 0;
+    private static final int STATE_WAIT_LOCK = 1;
+    private int mCaptureState = STATE_PREVIEW;
     private TextureView mTextureView;
     private TextureView.SurfaceTextureListener mSurfaceTextureListener = new TextureView.SurfaceTextureListener() {
         @Override
@@ -112,12 +119,49 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
     private String mCameraId;
     private Size mPreviewSize;
     private Size mVideoSize;
+    private Size mImageSize;
+    private ImageReader mImageReader;
+    private final ImageReader.OnImageAvailableListener mOnImageAvailableListener = new
+            ImageReader.OnImageAvailableListener() {
+                @Override
+                public void onImageAvailable(ImageReader reader) {
+
+                }
+            };
     private MediaRecorder mMediaRecorder;
     private Chronometer mChronometer;
     private int mTotalRotation;
+    private CameraCaptureSession mPreviewCaptureSession;
+    private CameraCaptureSession.CaptureCallback mPreviewCaptureCallback = new
+            CameraCaptureSession.CaptureCallback() {
+
+                private void process(CaptureResult captureResult) {
+                    switch (mCaptureState) {
+                        case STATE_PREVIEW:
+                            // Do nothing
+                            break;
+                        case STATE_WAIT_LOCK:
+                            mCaptureState = STATE_PREVIEW;
+                            Integer afState = captureResult.get(CaptureResult.CONTROL_AF_STATE);
+                            if(afState == CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED ||
+                                    afState == CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED) {
+                                Toast.makeText(getApplicationContext(), "AF Locked!", Toast.LENGTH_SHORT).show();
+                            }
+                            break;
+                    }
+                }
+
+                @Override
+                public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
+                    super.onCaptureCompleted(session, request, result);
+
+                    process(result);
+                }
+            };
     private CaptureRequest.Builder mCaptureRequestBuilder;
 
     private ImageButton mRecordImageButton;
+    private ImageButton mStillImageButton;
     private boolean mIsRecording = false;
 
     private File mVideoFolder;
@@ -149,6 +193,13 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
 
         mChronometer = (Chronometer) findViewById(R.id.chronometer);
         mTextureView = (TextureView) findViewById(R.id.textureView);
+        mStillImageButton = (ImageButton) findViewById(R.id.cameraImageButton2);
+        mStillImageButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                lockFocus();
+            }
+        });
         mRecordImageButton = (ImageButton) findViewById(R.id.videoOnlineImageButton);
         mRecordImageButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -248,6 +299,9 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
                 }
                 mPreviewSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class), rotatedWidth, rotatedHeight);
                 mVideoSize = chooseOptimalSize(map.getOutputSizes(MediaRecorder.class), rotatedWidth, rotatedHeight);
+                mImageSize = chooseOptimalSize(map.getOutputSizes(ImageFormat.JPEG), rotatedWidth, rotatedHeight);
+                mImageReader = ImageReader.newInstance(mImageSize.getWidth(), mImageSize.getHeight(), ImageFormat.JPEG, 1);
+                mImageReader.setOnImageAvailableListener(mOnImageAvailableListener, mBackgroundHandler);
                 mCameraId = cameraId;
                 return;
             }
@@ -323,12 +377,13 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
             mCaptureRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             mCaptureRequestBuilder.addTarget(previewSurface);
 
-            mCameraDevice.createCaptureSession(Arrays.asList(previewSurface),
+            mCameraDevice.createCaptureSession(Arrays.asList(previewSurface, mImageReader.getSurface()),
                     new CameraCaptureSession.StateCallback() {
                         @Override
                         public void onConfigured(CameraCaptureSession session) {
+                            mPreviewCaptureSession = session;
                             try {
-                                session.setRepeatingRequest(mCaptureRequestBuilder.build(),
+                                mPreviewCaptureSession.setRepeatingRequest(mCaptureRequestBuilder.build(),
                                         null, mBackgroundHandler);
                             } catch (CameraAccessException e) {
                                 e.printStackTrace();
@@ -460,5 +515,15 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
         mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
         mMediaRecorder.setOrientationHint(mTotalRotation);
         mMediaRecorder.prepare();
+    }
+
+    private void lockFocus() {
+        mCaptureState = STATE_WAIT_LOCK;
+        mCaptureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START);
+        try {
+            mPreviewCaptureSession.capture(mCaptureRequestBuilder.build(), mPreviewCaptureCallback, mBackgroundHandler);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
     }
 }
