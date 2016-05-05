@@ -195,6 +195,34 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
                     process(result);
                 }
             };
+    private CameraCaptureSession mRecordCaptureSession;
+    private CameraCaptureSession.CaptureCallback mRecordCaptureCallback = new
+            CameraCaptureSession.CaptureCallback() {
+
+                private void process(CaptureResult captureResult) {
+                    switch (mCaptureState) {
+                        case STATE_PREVIEW:
+                            // Do nothing
+                            break;
+                        case STATE_WAIT_LOCK:
+                            mCaptureState = STATE_PREVIEW;
+                            Integer afState = captureResult.get(CaptureResult.CONTROL_AF_STATE);
+                            if(afState == CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED ||
+                                    afState == CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED) {
+                                Toast.makeText(getApplicationContext(), "AF Locked!", Toast.LENGTH_SHORT).show();
+                                startStillCaptureRequest();
+                            }
+                            break;
+                    }
+                }
+
+                @Override
+                public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
+                    super.onCaptureCompleted(session, request, result);
+
+                    process(result);
+                }
+            };
     private CaptureRequest.Builder mCaptureRequestBuilder;
 
     private ImageButton mRecordImageButton;
@@ -385,12 +413,13 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
             mCaptureRequestBuilder.addTarget(previewSurface);
             mCaptureRequestBuilder.addTarget(recordSurface);
 
-            mCameraDevice.createCaptureSession(Arrays.asList(previewSurface, recordSurface),
+            mCameraDevice.createCaptureSession(Arrays.asList(previewSurface, recordSurface, mImageReader.getSurface()),
                     new CameraCaptureSession.StateCallback() {
                         @Override
                         public void onConfigured(CameraCaptureSession session) {
+                            mRecordCaptureSession = session;
                             try {
-                                session.setRepeatingRequest(
+                                mRecordCaptureSession.setRepeatingRequest(
                                         mCaptureRequestBuilder.build(), null, null
                                 );
                             } catch (CameraAccessException e) {
@@ -444,7 +473,11 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
 
     private void startStillCaptureRequest() {
         try {
-            mCaptureRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+            if(mIsRecording) {
+                mCaptureRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_VIDEO_SNAPSHOT);
+            } else {
+                mCaptureRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+            }
             mCaptureRequestBuilder.addTarget(mImageReader.getSurface());
             mCaptureRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, mTotalRotation);
 
@@ -462,7 +495,11 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
                         }
                     };
 
-            mPreviewCaptureSession.capture(mCaptureRequestBuilder.build(), stillCaptureCallback, null);
+            if(mIsRecording) {
+                mRecordCaptureSession.capture(mCaptureRequestBuilder.build(), stillCaptureCallback, null);
+            } else {
+                mPreviewCaptureSession.capture(mCaptureRequestBuilder.build(), stillCaptureCallback, null);
+            }
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -603,7 +640,11 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
         mCaptureState = STATE_WAIT_LOCK;
         mCaptureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START);
         try {
-            mPreviewCaptureSession.capture(mCaptureRequestBuilder.build(), mPreviewCaptureCallback, mBackgroundHandler);
+            if(mIsRecording) {
+                mRecordCaptureSession.capture(mCaptureRequestBuilder.build(), mRecordCaptureCallback, mBackgroundHandler);
+            } else {
+                mPreviewCaptureSession.capture(mCaptureRequestBuilder.build(), mPreviewCaptureCallback, mBackgroundHandler);
+            }
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
