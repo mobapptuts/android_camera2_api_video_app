@@ -14,6 +14,7 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.media.CamcorderProfile;
 import android.media.Image;
 import android.media.ImageReader;
 import android.media.MediaRecorder;
@@ -228,6 +229,7 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
     private ImageButton mRecordImageButton;
     private ImageButton mStillImageButton;
     private boolean mIsRecording = false;
+    private boolean mIsTimelapse = false;
 
     private File mVideoFolder;
     private String mVideoFileName;
@@ -272,17 +274,29 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
         mRecordImageButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (mIsRecording) {
+                if (mIsRecording || mIsTimelapse) {
                     mChronometer.stop();
                     mChronometer.setVisibility(View.INVISIBLE);
                     mIsRecording = false;
+                    mIsTimelapse = false;
                     mRecordImageButton.setImageResource(R.mipmap.btn_video_online);
                     mMediaRecorder.stop();
                     mMediaRecorder.reset();
                     startPreview();
                 } else {
+                    mIsRecording = true;
+                    mRecordImageButton.setImageResource(R.mipmap.btn_video_busy);
                     checkWriteStoragePermission();
                 }
+            }
+        });
+        mRecordImageButton.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                mIsTimelapse =true;
+                mRecordImageButton.setImageResource(R.mipmap.btn_timelapse);
+                checkWriteStoragePermission();
+                return true;
             }
         });
     }
@@ -409,7 +423,11 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
     private void startRecord() {
 
         try {
-            setupMediaRecorder();
+            if(mIsRecording) {
+                setupMediaRecorder();
+            } else if(mIsTimelapse) {
+                setupTimelapse();
+            }
             SurfaceTexture surfaceTexture = mTextureView.getSurfaceTexture();
             surfaceTexture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
             Surface previewSurface = new Surface(surfaceTexture);
@@ -595,8 +613,6 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if(ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
                     == PackageManager.PERMISSION_GRANTED) {
-                mIsRecording = true;
-                mRecordImageButton.setImageResource(R.mipmap.btn_video_busy);
                 try {
                     createVideoFileName();
                 } catch (IOException e) {
@@ -614,8 +630,6 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
                 requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_WRITE_EXTERNAL_STORAGE_PERMISSION_RESULT);
             }
         } else {
-            mIsRecording = true;
-            mRecordImageButton.setImageResource(R.mipmap.btn_video_busy);
             try {
                 createVideoFileName();
             } catch (IOException e) {
@@ -639,6 +653,15 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
         mMediaRecorder.setVideoSize(mVideoSize.getWidth(), mVideoSize.getHeight());
         mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
         mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+        mMediaRecorder.setOrientationHint(mTotalRotation);
+        mMediaRecorder.prepare();
+    }
+
+    private void setupTimelapse() throws IOException {
+        mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
+        mMediaRecorder.setProfile(CamcorderProfile.get(CamcorderProfile.QUALITY_TIME_LAPSE_HIGH));
+        mMediaRecorder.setOutputFile(mVideoFileName);
+        mMediaRecorder.setCaptureRate(2);
         mMediaRecorder.setOrientationHint(mTotalRotation);
         mMediaRecorder.prepare();
     }
