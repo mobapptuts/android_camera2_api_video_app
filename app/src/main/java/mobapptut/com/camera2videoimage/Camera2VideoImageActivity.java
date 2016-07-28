@@ -2,6 +2,7 @@ package mobapptut.com.camera2videoimage;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
@@ -267,6 +268,7 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
         mStillImageButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                checkWriteStoragePermission();
                 lockFocus();
             }
         });
@@ -330,8 +332,10 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
         }
         if(requestCode == REQUEST_WRITE_EXTERNAL_STORAGE_PERMISSION_RESULT) {
             if(grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                mIsRecording = true;
-                mRecordImageButton.setImageResource(R.mipmap.btn_video_busy);
+                if(mIsRecording || mIsTimelapse) {
+                    mIsRecording = true;
+                    mRecordImageButton.setImageResource(R.mipmap.btn_video_busy);
+                }
                 Toast.makeText(this,
                         "Permission successfully granted!", Toast.LENGTH_SHORT).show();
             } else {
@@ -618,11 +622,13 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                startRecord();
-                mMediaRecorder.start();
-                mChronometer.setBase(SystemClock.elapsedRealtime());
-                mChronometer.setVisibility(View.VISIBLE);
-                mChronometer.start();
+                if(mIsTimelapse || mIsRecording) {
+                    startRecord();
+                    mMediaRecorder.start();
+                    mChronometer.setBase(SystemClock.elapsedRealtime());
+                    mChronometer.setVisibility(View.VISIBLE);
+                    mChronometer.start();
+                }
             } else {
                 if(shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
                     Toast.makeText(this, "app needs to be able to save videos", Toast.LENGTH_SHORT).show();
@@ -635,11 +641,13 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            startRecord();
-            mMediaRecorder.start();
-            mChronometer.setBase(SystemClock.elapsedRealtime());
-            mChronometer.setVisibility(View.VISIBLE);
-            mChronometer.start();
+            if(mIsRecording || mIsTimelapse) {
+                startRecord();
+                mMediaRecorder.start();
+                mChronometer.setBase(SystemClock.elapsedRealtime());
+                mChronometer.setVisibility(View.VISIBLE);
+                mChronometer.start();
+            }
         }
     }
 
