@@ -28,6 +28,7 @@ import android.os.SystemClock;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.util.Size;
 import android.util.SparseIntArray;
 import android.view.Surface;
@@ -50,6 +51,8 @@ import java.util.Date;
 import java.util.List;
 
 public class Camera2VideoImageActivity extends AppCompatActivity {
+
+    private static final String TAG = "Camera2VideoImageActivi";
 
     private static final int REQUEST_CAMERA_PERMISSION_RESULT = 0;
     private static final int REQUEST_WRITE_EXTERNAL_STORAGE_PERMISSION_RESULT = 1;
@@ -255,8 +258,8 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
 
         @Override
         public int compare(Size lhs, Size rhs) {
-            return Long.signum((long) lhs.getWidth() * lhs.getHeight() /
-                    (long) rhs.getWidth() * rhs.getHeight());
+            return Long.signum( (long)(lhs.getWidth() * lhs.getHeight()) -
+                    (long)(rhs.getWidth() * rhs.getHeight()));
         }
     }
 
@@ -467,7 +470,7 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
 
                         @Override
                         public void onConfigureFailed(CameraCaptureSession session) {
-
+                            Log.d(TAG, "onConfigureFailed: startRecord");
                         }
                     }, null);
 
@@ -488,6 +491,7 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
                     new CameraCaptureSession.StateCallback() {
                         @Override
                         public void onConfigured(CameraCaptureSession session) {
+                            Log.d(TAG, "onConfigured: startPreview");
                             mPreviewCaptureSession = session;
                             try {
                                 mPreviewCaptureSession.setRepeatingRequest(mCaptureRequestBuilder.build(),
@@ -499,8 +503,7 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
 
                         @Override
                         public void onConfigureFailed(CameraCaptureSession session) {
-                            Toast.makeText(getApplicationContext(),
-                                    "Unable to setup camera preview", Toast.LENGTH_SHORT).show();
+                            Log.d(TAG, "onConfigureFailed: startPreview");
 
                         }
                     }, null);
