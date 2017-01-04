@@ -291,6 +291,10 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
                     mIsRecording = false;
                     mIsTimelapse = false;
                     mRecordImageButton.setImageResource(R.mipmap.btn_video_online);
+
+                    // Starting the preview prior to stopping recording which should hopefully
+                    // resolve issues being seen in Samsung devices.
+                    startPreview();
                     mMediaRecorder.stop();
                     mMediaRecorder.reset();
 
@@ -298,7 +302,6 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
                     mediaStoreUpdateIntent.setData(Uri.fromFile(new File(mVideoFileName)));
                     sendBroadcast(mediaStoreUpdateIntent);
 
-                    startPreview();
                 } else {
                     mIsRecording = true;
                     mRecordImageButton.setImageResource(R.mipmap.btn_video_busy);
