@@ -277,7 +277,9 @@ public class Camera2VideoImageActivity extends AppCompatActivity {
         mStillImageButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                checkWriteStoragePermission();
+                if(!(mIsTimelapse || mIsRecording)) {
+                    checkWriteStoragePermission();
+                }
                 lockFocus();
             }
         });
